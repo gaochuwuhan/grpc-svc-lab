@@ -9,6 +9,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"time"
 )
 
 type server struct {
@@ -40,6 +41,71 @@ func(s *server) GetUserScoreByClientStream(server pb.UserService_GetUserScoreByC
 			user.UserScore=user.UserId+110 //模拟处理
 			users = append(users,user)
 		}
+	}
+	return nil
+}
+
+//服务端流式返回
+func(s *server) GetUserScoreByServerStream(req *pb.UserScoreReq,server pb.UserService_GetUserScoreByServerStreamServer) error {
+	//client端传什么req，server端返回什么
+	i:=0
+	for{
+		if i>5{ //服务端会返回6次给客户端
+			break
+		}
+		//mock res
+		res:=new(pb.UserScoreRes)
+		res.Users = make([]*pb.UserInfo,0)
+		for _,user := range req.Users {
+			user.UserScore = 200+user.UserId
+			res.Users = append(res.Users,user)
+		}
+		time.Sleep(1*time.Second)
+		server.Send(res)
+		i++
+	}
+	return nil
+
+}
+
+//双向流
+func(s *server) GetUserScoreBothStream(server pb.UserService_GetUserScoreBothStreamServer) error{
+
+	//服务端开goroutine 读取req，
+	readUsers:=make(chan []*pb.UserInfo)
+	l:=0
+	go func() {
+		for {
+			req,_:=server.Recv()
+			//if err!=nil{
+			//	readUsers <- nil //防止channel死锁
+			//	break
+			//}
+			if l>5{
+				readUsers <- nil //防止channel死锁
+				break
+			}
+			readUsers<-req.GetUsers()
+			l++
+
+
+		}
+	}()
+	//发送回客户端处理后的数据
+	for {
+		if <- readUsers == nil{
+			break
+		}
+		//将req的score赋值
+		res:=new(pb.UserScoreRes)
+		res.Users = <-readUsers //只要当前channel有req则读取
+		//mock res
+		for k,requser:=range res.Users {
+			res.Users[k].UserScore = 200+requser.UserId
+		}
+		fmt.Println("[双向流]服务端响应的users:",res.Users)
+		//发送res给客户端
+		server.Send(res)
 	}
 	return nil
 }

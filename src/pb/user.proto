@@ -21,6 +21,7 @@ service UserService{
     rpc GetUserScore(UserScoreReq) returns (UserScoreRes);
     rpc GetUserScoreByServerStream(UserScoreReq) returns (stream UserScoreRes); //服务端流
     rpc GetUserScoreByClientStream(stream UserScoreReq) returns(UserScoreRes); //客户端流
+    rpc GetUserScoreBothStream(stream UserScoreReq) returns(stream UserScoreRes);// 双向流
 }
 
 

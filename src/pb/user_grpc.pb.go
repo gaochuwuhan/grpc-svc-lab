@@ -25,6 +25,7 @@ type UserServiceClient interface {
 	GetUserScore(ctx context.Context, in *UserScoreReq, opts ...grpc.CallOption) (*UserScoreRes, error)
 	GetUserScoreByServerStream(ctx context.Context, in *UserScoreReq, opts ...grpc.CallOption) (UserService_GetUserScoreByServerStreamClient, error)
 	GetUserScoreByClientStream(ctx context.Context, opts ...grpc.CallOption) (UserService_GetUserScoreByClientStreamClient, error)
+	GetUserScoreBothStream(ctx context.Context, opts ...grpc.CallOption) (UserService_GetUserScoreBothStreamClient, error)
 }
 
 type userServiceClient struct {
@@ -110,6 +111,37 @@ func (x *userServiceGetUserScoreByClientStreamClient) CloseAndRecv() (*UserScore
 	return m, nil
 }
 
+func (c *userServiceClient) GetUserScoreBothStream(ctx context.Context, opts ...grpc.CallOption) (UserService_GetUserScoreBothStreamClient, error) {
+	stream, err := c.cc.NewStream(ctx, &UserService_ServiceDesc.Streams[2], "/pb.UserService/GetUserScoreBothStream", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &userServiceGetUserScoreBothStreamClient{stream}
+	return x, nil
+}
+
+type UserService_GetUserScoreBothStreamClient interface {
+	Send(*UserScoreReq) error
+	Recv() (*UserScoreRes, error)
+	grpc.ClientStream
+}
+
+type userServiceGetUserScoreBothStreamClient struct {
+	grpc.ClientStream
+}
+
+func (x *userServiceGetUserScoreBothStreamClient) Send(m *UserScoreReq) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *userServiceGetUserScoreBothStreamClient) Recv() (*UserScoreRes, error) {
+	m := new(UserScoreRes)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // UserServiceServer is the server API for UserService service.
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility
@@ -117,6 +149,7 @@ type UserServiceServer interface {
 	GetUserScore(context.Context, *UserScoreReq) (*UserScoreRes, error)
 	GetUserScoreByServerStream(*UserScoreReq, UserService_GetUserScoreByServerStreamServer) error
 	GetUserScoreByClientStream(UserService_GetUserScoreByClientStreamServer) error
+	GetUserScoreBothStream(UserService_GetUserScoreBothStreamServer) error
 	mustEmbedUnimplementedUserServiceServer()
 }
 
@@ -132,6 +165,9 @@ func (UnimplementedUserServiceServer) GetUserScoreByServerStream(*UserScoreReq, 
 }
 func (UnimplementedUserServiceServer) GetUserScoreByClientStream(UserService_GetUserScoreByClientStreamServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetUserScoreByClientStream not implemented")
+}
+func (UnimplementedUserServiceServer) GetUserScoreBothStream(UserService_GetUserScoreBothStreamServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetUserScoreBothStream not implemented")
 }
 func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
 
@@ -211,6 +247,32 @@ func (x *userServiceGetUserScoreByClientStreamServer) Recv() (*UserScoreReq, err
 	return m, nil
 }
 
+func _UserService_GetUserScoreBothStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(UserServiceServer).GetUserScoreBothStream(&userServiceGetUserScoreBothStreamServer{stream})
+}
+
+type UserService_GetUserScoreBothStreamServer interface {
+	Send(*UserScoreRes) error
+	Recv() (*UserScoreReq, error)
+	grpc.ServerStream
+}
+
+type userServiceGetUserScoreBothStreamServer struct {
+	grpc.ServerStream
+}
+
+func (x *userServiceGetUserScoreBothStreamServer) Send(m *UserScoreRes) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *userServiceGetUserScoreBothStreamServer) Recv() (*UserScoreReq, error) {
+	m := new(UserScoreReq)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // UserService_ServiceDesc is the grpc.ServiceDesc for UserService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -232,6 +294,12 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "GetUserScoreByClientStream",
 			Handler:       _UserService_GetUserScoreByClientStream_Handler,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "GetUserScoreBothStream",
+			Handler:       _UserService_GetUserScoreBothStream_Handler,
+			ServerStreams: true,
 			ClientStreams: true,
 		},
 	},
