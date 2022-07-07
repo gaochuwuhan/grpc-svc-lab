@@ -1,0 +1,28 @@
+syntax = "proto3"; //告诉编译器用proto3 来解读
+
+option go_package="grpc-svc-lab/pb"; //；后面的是别名前面的是包名
+
+package pb;
+
+message UserInfo {
+    int32 user_id = 1;
+    int32 user_score = 2;
+}
+
+message UserScoreReq {
+    repeated UserInfo users = 1;
+}
+
+message UserScoreRes {
+    repeated UserInfo users = 1;
+}
+
+service UserService{
+    rpc GetUserScore(UserScoreReq) returns (UserScoreRes);
+    rpc GetUserScoreByServerStream(UserScoreReq) returns (stream UserScoreRes); //服务端流
+    rpc GetUserScoreByClientStream(stream UserScoreReq) returns(UserScoreRes); //客户端流
+}
+
+
+
+
